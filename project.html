@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Student Academic Planner Demo</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f9f9f9;
+      color: #333;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1, h2 {
+      text-align: center;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    section > div.content {
+      display: none;
+      margin-top: 10px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      background: #fff;
+      margin: 5px 0;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      background: #008CBA;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 3px;
+    }
+    button:hover {
+      background: #005f73;
+    }
+    #timer-display {
+      font-size: 3em;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .calendar .day {
+      background: white;
+      margin: 5px 0;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .remove-btn {
+      background: #e63946;
+      padding: 0 6px;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Home / Motivational Quote -->
+<section>
+  <h1><b><ul>Welcome to JOSHIN'S ACADEMIC PLANNER</ul></h1>
+  <p><b><center><ul>Success doesn’t come from what you do occasionally, it comes from what you do consistently.</ul></center></b></p>
+</section>
+
+<hr>
+
+<!-- Subjects & Grades -->
+<section>
+  <h2 onclick="toggleSection(this)">Your Subjects & Grades</h2>
+  <div class="content">
+    <ul id="subject-list"></ul>
+  </div>
+</section>
+
+<hr>
+
+<!-- To-Do List -->
+<section>
+  <h2 onclick="toggleSection(this)">To-Do List</h2>
+  <div class="content">
+    <input id="task-input" placeholder="Add new task..." />
+    <button id="add-task-btn">Add</button>
+    <ul id="task-list"></ul>
+  </div>
+</section>
+
+<hr>
+
+<!-- Calendar -->
+<section>
+  <h2 onclick="toggleSection(this)">Calendar - Upcoming Deadlines</h2>
+  <div class="content calendar">
+    <div class="day">June 12: Last Working Day</div>
+    <div class="day">June 20: Sem Exam Starts</div>
+    <div class="day">July 07: S3 Starts</div>
+  </div>
+</section>
+
+<hr>
+
+<!-- Pomodoro Timer -->
+<section>
+  <h2 onclick="toggleSection(this)">Study Timer</h2>
+  <div class="content">
+    <div id="timer-display">30:00</div>
+    <div style="text-align:center;">
+      <button id="start-btn">Start</button>
+      <button id="pause-btn">Pause</button>
+      <button id="reset-btn">Reset</button>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Toggle Section
+  function toggleSection(header) {
+    const content = header.nextElementSibling;
+    content.style.display = content.style.display === 'block' ? 'none' : 'block';
+  }
+
+  // Subjects Data
+  const subjectsData = [
+    { subject: "Maths", grade: "A+" },
+    { subject: "History", grade: "B+" },
+    { subject: "C Programming", grade: "A" }
+  ];
+  const subjectList = document.getElementById('subject-list');
+  subjectList.innerHTML = subjectsData.map(s => `<li>${s.subject}: <strong>${s.grade}</strong></li>`).join('');
+
+  // To-Do List
+  const taskInput = document.getElementById('task-input');
+  const addTaskBtn = document.getElementById('add-task-btn');
+  const taskList = document.getElementById('task-list');
+  let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+  function renderTasks() {
+    taskList.innerHTML = '';
+    tasks.forEach((task, idx) => {
+      const li = document.createElement('li');
+      li.textContent = task.text;
+      if(task.done) li.style.textDecoration = "line-through";
+      li.addEventListener('click', () => toggleDone(idx));
+
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = '✕';
+      removeBtn.className = 'remove-btn';
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeTask(idx);
+      });
+
+      li.appendChild(removeBtn);
+      taskList.appendChild(li);
+    });
+  }
+
+  function addTask() {
+    if(taskInput.value.trim()) {
+      tasks.push({text: taskInput.value.trim(), done: false});
+      taskInput.value = '';
+      saveTasks();
+      renderTasks();
+    }
+  }
+
+  function toggleDone(index) {
+    tasks[index].done = !tasks[index].done;
+    saveTasks();
+    renderTasks();
+  }
+
+  function removeTask(index) {
+    tasks.splice(index, 1);
+    saveTasks();
+    renderTasks();
+  }
+
+  function saveTasks() {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }
+
+  addTaskBtn.addEventListener('click', addTask);
+  taskInput.addEventListener('keydown', e => { if(e.key === 'Enter') addTask(); });
+  renderTasks();
+
+  // Pomodoro Timer
+  let workDuration = 30 * 60;
+  let breakDuration = 5 * 60;
+  let timer = null;
+  let timeLeft = workDuration;
+  let isWorkTime = true;
+
+  const display = document.getElementById('timer-display');
+  const startBtn = document.getElementById('start-btn');
+  const pauseBtn = document.getElementById('pause-btn');
+  const resetBtn = document.getElementById('reset-btn');
+
+  function updateDisplay() {
+    const mins = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+    const secs = (timeLeft % 60).toString().padStart(2, '0');
+    display.textContent = `${mins}:${secs}`;
+  }
+
+  function tick() {
+    if(timeLeft > 0) {
+      timeLeft--;
+      updateDisplay();
+    } else {
+      clearInterval(timer);
+      timer = null;
+      alert(isWorkTime ? "Work session done! Time for a break." : "Break over! Back to work.");
+      isWorkTime = !isWorkTime;
+      timeLeft = isWorkTime ? workDuration : breakDuration;
+      updateDisplay();
+    }
+  }
+
+  startBtn.onclick = () => {
+    if (!timer) timer = setInterval(tick, 1000);
+  };
+
+  pauseBtn.onclick = () => {
+    clearInterval(timer);
+    timer = null;
+  };
+
+  resetBtn.onclick = () => {
+    clearInterval(timer);
+    timer = null;
+    timeLeft = isWorkTime ? workDuration : breakDuration;
+    updateDisplay();
+  };
+
+  updateDisplay();
+</script>
+
+</body>
+</html>
